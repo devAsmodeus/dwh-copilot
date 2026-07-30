@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/devAsmodeus/dwh-copilot/compare/dwh-copilot-v0.2.2...dwh-copilot-v0.3.0) (2026-07-30)
+
+
+### Возможности
+
+* уточнены правила формирования запроса, добавлены измеренные показатели ([5c091ed](https://github.com/devAsmodeus/dwh-copilot/commit/5c091ed83ca53e7deb4c17e5dcb1dda06e0e1146))
+
 ## [0.2.2](https://github.com/devAsmodeus/dwh-copilot/compare/dwh-copilot-v0.2.1...dwh-copilot-v0.2.2) (2026-07-30)
 
 
