@@ -158,8 +158,8 @@ questions:
     notes: Пример №2 из ТЗ. Обязателен в наборе.
     golden_sql: |
       SELECT division,
-             SUM(revenue_plan) AS plan,
-             SUM(revenue_fact) AS fact
+             SUM(revenue_plan) AS plan_amount,
+             SUM(revenue_fact) AS fact_amount
       FROM mart.v_sales_plan_fact
       GROUP BY division
       HAVING SUM(revenue_fact) < SUM(revenue_plan) * 0.9

@@ -200,6 +200,32 @@ def check_integrity(questions: list[dict], catalog: Catalog) -> list[str]:
     return problems
 
 
+def check_golden_sql_executes(questions: list[dict], database) -> list[tuple[str, str]]:
+    """Выполняет каждый эталонный запрос в СУБД и возвращает перечень неудач.
+
+    Проверка разбора синтаксическим анализатором недостаточна. Библиотека
+    sqlglot принимает конструкции, которые Microsoft SQL Server отвергает.
+    Показательный пример: слово plan является в T-SQL зарезервированным
+    и не может служить псевдонимом колонки без обрамления скобками, тогда как
+    разбор такого запроса проходит без замечаний.
+
+    Ошибка в эталонном запросе обесценивает весь прогон: вопрос засчитывается
+    неверным независимо от того, что сформировала модель. Поэтому проверка
+    выполнимости эталонов вынесена в отдельный режим и запускается на стенде
+    до полного прогона.
+    """
+    failures: list[tuple[str, str]] = []
+    for item in questions:
+        sql = item.get("golden_sql")
+        if not sql:
+            continue
+        try:
+            database.execute(sql)
+        except Exception as error:
+            failures.append((item["id"], str(error)))
+    return failures
+
+
 def run(pipeline, questions: list[dict], database, verbose: bool = True) -> Report:
     """Выполняет полный прогон набора.
 
@@ -327,6 +353,14 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Проверить целостность набора без обращения к модели и базе данных",
     )
+    parser.add_argument(
+        "--check-sql",
+        action="store_true",
+        help=(
+            "Дополнительно выполнить каждый эталонный запрос в СУБД. "
+            "Требует поднятого стенда, обращений к языковой модели не делает"
+        ),
+    )
     parser.add_argument("--output", help="Файл для сохранения отчёта в формате JSON")
     parser.add_argument(
         "--min-accuracy",
@@ -349,7 +383,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Набор проверен: {len(questions)} вопросов, ошибок нет.")
     print(f"Данные зафиксированы на дату {meta.get('snapshot_date', 'не указана')}.")
 
-    if args.check_only:
+    if args.check_only and not args.check_sql:
         return 0
 
     # Полный прогон требует запущенного сервера вывода и базы данных.
@@ -358,6 +392,19 @@ def main(argv: list[str] | None = None) -> int:
     from dwh_copilot.factory import build_pipeline
 
     pipeline, database = build_pipeline(catalog)
+
+    if args.check_sql:
+        failures = check_golden_sql_executes(questions, database)
+        if failures:
+            print("Эталонные запросы, не выполнившиеся в СУБД:", file=sys.stderr)
+            for code, error in failures:
+                print(f"  {code}: {error}", file=sys.stderr)
+            return 1
+        answerable = sum(1 for item in questions if item.get("answerable", True))
+        print(f"Эталонные запросы выполнены в СУБД: {answerable} из {answerable}.")
+        if args.check_only:
+            return 0
+
     report = run(pipeline, questions, database)
     print(format_report(report))
 
