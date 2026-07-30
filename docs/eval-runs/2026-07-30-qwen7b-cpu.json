@@ -1,0 +1,237 @@
+{
+  "execution_accuracy": 0.6,
+  "valid_sql_rate": 0.76,
+  "retry_rate": 0.04,
+  "latency_p50": 85.68,
+  "latency_p95": 162.27,
+  "abstention_recall": 1.0,
+  "total": 25,
+  "correct": 15,
+  "cases": [
+    {
+      "id": "agg_01",
+      "category": "simple_aggregation",
+      "correct": true,
+      "detail": "",
+      "retries": 0,
+      "elapsed_seconds": 174.17,
+      "valid_first_try": true
+    },
+    {
+      "id": "agg_02",
+      "category": "simple_aggregation",
+      "correct": true,
+      "detail": "",
+      "retries": 0,
+      "elapsed_seconds": 87.19,
+      "valid_first_try": true
+    },
+    {
+      "id": "agg_03",
+      "category": "simple_aggregation",
+      "correct": true,
+      "detail": "",
+      "retries": 0,
+      "elapsed_seconds": 139.82,
+      "valid_first_try": true
+    },
+    {
+      "id": "agg_04",
+      "category": "simple_aggregation",
+      "correct": true,
+      "detail": "",
+      "retries": 0,
+      "elapsed_seconds": 162.27,
+      "valid_first_try": true
+    },
+    {
+      "id": "agg_05",
+      "category": "simple_aggregation",
+      "correct": true,
+      "detail": "",
+      "retries": 0,
+      "elapsed_seconds": 54.87,
+      "valid_first_try": true
+    },
+    {
+      "id": "period_01",
+      "category": "filter_period",
+      "correct": false,
+      "detail": "Данные не совпали с эталоном",
+      "retries": 0,
+      "elapsed_seconds": 85.68,
+      "valid_first_try": true
+    },
+    {
+      "id": "period_02",
+      "category": "filter_period",
+      "correct": false,
+      "detail": "Данные не совпали с эталоном",
+      "retries": 0,
+      "elapsed_seconds": 54.34,
+      "valid_first_try": true
+    },
+    {
+      "id": "period_03",
+      "category": "filter_period",
+      "correct": false,
+      "detail": "Данные не совпали с эталоном",
+      "retries": 0,
+      "elapsed_seconds": 64.78,
+      "valid_first_try": true
+    },
+    {
+      "id": "period_04",
+      "category": "filter_period",
+      "correct": true,
+      "detail": "",
+      "retries": 0,
+      "elapsed_seconds": 109.12,
+      "valid_first_try": true
+    },
+    {
+      "id": "period_05",
+      "category": "filter_period",
+      "correct": true,
+      "detail": "",
+      "retries": 0,
+      "elapsed_seconds": 130.86,
+      "valid_first_try": true
+    },
+    {
+      "id": "plan_01",
+      "category": "plan_fact",
+      "correct": false,
+      "detail": "Данные не совпали с эталоном",
+      "retries": 0,
+      "elapsed_seconds": 121.16,
+      "valid_first_try": true
+    },
+    {
+      "id": "plan_02",
+      "category": "plan_fact",
+      "correct": true,
+      "detail": "",
+      "retries": 0,
+      "elapsed_seconds": 31.74,
+      "valid_first_try": true
+    },
+    {
+      "id": "plan_03",
+      "category": "plan_fact",
+      "correct": true,
+      "detail": "",
+      "retries": 0,
+      "elapsed_seconds": 64.09,
+      "valid_first_try": true
+    },
+    {
+      "id": "plan_04",
+      "category": "plan_fact",
+      "correct": false,
+      "detail": "Неожиданный отказ: Витрина mart.v_sales_plan_fact не содержит информации о фактической выручке по клиентам, что необходимо для определения, кто перевыполнил план.",
+      "retries": 0,
+      "elapsed_seconds": 76.54,
+      "valid_first_try": false
+    },
+    {
+      "id": "rank_01",
+      "category": "ranking",
+      "correct": true,
+      "detail": "",
+      "retries": 0,
+      "elapsed_seconds": 73.46,
+      "valid_first_try": true
+    },
+    {
+      "id": "rank_02",
+      "category": "ranking",
+      "correct": false,
+      "detail": "Данные не совпали с эталоном",
+      "retries": 1,
+      "elapsed_seconds": 138.07,
+      "valid_first_try": false
+    },
+    {
+      "id": "rank_03",
+      "category": "ranking",
+      "correct": true,
+      "detail": "",
+      "retries": 0,
+      "elapsed_seconds": 150.92,
+      "valid_first_try": true
+    },
+    {
+      "id": "trend_01",
+      "category": "trend",
+      "correct": true,
+      "detail": "",
+      "retries": 0,
+      "elapsed_seconds": 91.23,
+      "valid_first_try": true
+    },
+    {
+      "id": "trend_02",
+      "category": "trend",
+      "correct": false,
+      "detail": "Данные не совпали с эталоном",
+      "retries": 0,
+      "elapsed_seconds": 78.12,
+      "valid_first_try": true
+    },
+    {
+      "id": "trend_03",
+      "category": "trend",
+      "correct": false,
+      "detail": "Данные не совпали с эталоном",
+      "retries": 0,
+      "elapsed_seconds": 37.11,
+      "valid_first_try": true
+    },
+    {
+      "id": "ambig_01",
+      "category": "ambiguous",
+      "correct": false,
+      "detail": "Данные не совпали с эталоном",
+      "retries": 0,
+      "elapsed_seconds": 105.25,
+      "valid_first_try": true
+    },
+    {
+      "id": "ambig_02",
+      "category": "ambiguous",
+      "correct": false,
+      "detail": "Неожиданный отказ: Не указан конкретный период для анализа. Пожалуйста, уточните даты или период.",
+      "retries": 0,
+      "elapsed_seconds": 67.87,
+      "valid_first_try": false
+    },
+    {
+      "id": "refuse_01",
+      "category": "unanswerable",
+      "correct": true,
+      "detail": "",
+      "retries": 0,
+      "elapsed_seconds": 51.18,
+      "valid_first_try": false
+    },
+    {
+      "id": "refuse_02",
+      "category": "unanswerable",
+      "correct": true,
+      "detail": "",
+      "retries": 0,
+      "elapsed_seconds": 70.5,
+      "valid_first_try": false
+    },
+    {
+      "id": "refuse_03",
+      "category": "unanswerable",
+      "correct": true,
+      "detail": "",
+      "retries": 0,
+      "elapsed_seconds": 130.31,
+      "valid_first_try": false
+    }
+  ]
+}
