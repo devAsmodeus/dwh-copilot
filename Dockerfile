@@ -4,7 +4,7 @@
 # остаётся только готовый дистрибутив и драйвер ODBC. Такое разделение
 # убирает из итогового образа инструменты сборки.
 
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 WORKDIR /build
 
@@ -15,7 +15,7 @@ RUN python -m pip install --no-cache-dir --upgrade pip build \
     && python -m build --wheel --outdir /dist
 
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 # Драйвер ODBC для Microsoft SQL Server. Устанавливается из репозитория
 # Microsoft, ключ проверяется по подписи.
