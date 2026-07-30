@@ -1,0 +1,140 @@
+# Демонстрационный стенд.
+#
+# Поднимает Microsoft SQL Server с демонстрационным хранилищем, наполняет его
+# данными, настраивает права и запускает веб-интерфейс.
+#
+#     docker compose up -d
+#     открыть http://localhost:8501
+#
+# Сервер вывода языковой модели вынесен в отдельный профиль. Он требует
+# графического ускорителя и по умолчанию не запускается: интерфейс и проверки
+# безопасности работают и без него.
+#
+#     docker compose --profile llm up -d
+#
+# На рабочем сервере с RTX 5090 применяется образ vLLM с поддержкой
+# архитектуры Blackwell. Требуется CUDA версии 12.8 или выше.
+
+services:
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: dwh-mssql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Str0ng_Sa_P@ssw0rd!}
+      MSSQL_PID: Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa
+          -P "$$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  # Разовое наполнение базы. Контейнер завершается после выполнения скриптов.
+  mssql-init:
+    image: mcr.microsoft.com/mssql-tools:latest
+    container_name: dwh-mssql-init
+    depends_on:
+      mssql:
+        condition: service_healthy
+    volumes:
+      - ./sql:/sql:ro
+    entrypoint: >
+      bash -c "
+      set -e;
+      echo 'Создание схемы и данных...';
+      /opt/mssql-tools/bin/sqlcmd -S mssql -U sa -P \"$$MSSQL_SA_PASSWORD\" -b -i /sql/01_schema.sql;
+      echo 'Создание витрин...';
+      /opt/mssql-tools/bin/sqlcmd -S mssql -U sa -P \"$$MSSQL_SA_PASSWORD\" -b -i /sql/02_views.sql;
+      echo 'Настройка прав доступа...';
+      /opt/mssql-tools/bin/sqlcmd -S mssql -U sa -P \"$$MSSQL_SA_PASSWORD\" -b -i /sql/03_security.sql;
+      echo 'Стенд готов.';
+      "
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Str0ng_Sa_P@ssw0rd!}
+    restart: "no"
+
+  app:
+    build: .
+    container_name: dwh-app
+    depends_on:
+      mssql-init:
+        condition: service_completed_successfully
+    ports:
+      - "8501:8501"
+    environment:
+      DWH_MSSQL_HOST: mssql
+      DWH_MSSQL_PORT: "1433"
+      DWH_MSSQL_DATABASE: dwh_demo
+      DWH_MSSQL_USER: dwh_reader
+      DWH_MSSQL_PASSWORD: ${DWH_READER_PASSWORD:-Reader_Str0ng_P@ss!}
+      DWH_LLM_BASE_URL: ${DWH_LLM_BASE_URL:-http://vllm:8000/v1}
+      DWH_LLM_MODEL: ${DWH_LLM_MODEL:-Qwen/Qwen3-30B-A3B-Instruct-AWQ}
+      DWH_LLM_TIMEOUT_SECONDS: ${DWH_LLM_TIMEOUT_SECONDS:-60}
+      DWH_DATA_AS_OF: "2026-07-28"
+    extra_hosts:
+      # Позволяет обратиться к серверу вывода, запущенному на самой машине,
+      # а не в контейнере. Нужно при работе на процессоре через Ollama.
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./config:/app/config:ro
+      - ./eval:/app/eval:ro
+    restart: unless-stopped
+
+  # Запуск на процессоре, без видеокарты. Нужен для ознакомления с системой
+  # и для снятия изображений интерфейса на машине без ускорителя.
+  # Ответ формируется за 30-60 секунд вместо 5, поведение системы не меняется.
+  #
+  #     docker compose --profile cpu up -d
+  #
+  # Промышленная установка использует профиль llm с сервером vLLM.
+  ollama:
+    profiles: ["cpu"]
+    image: ollama/ollama:latest
+    container_name: dwh-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    restart: unless-stopped
+
+  vllm:
+    profiles: ["llm"]
+    image: vllm/vllm-openai:latest
+    container_name: dwh-vllm
+    ports:
+      - "8000:8000"
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+    environment:
+      HF_HUB_OFFLINE: "1"
+    command: >
+      --model Qwen/Qwen3-30B-A3B-Instruct-AWQ
+      --quantization awq_marlin
+      --kv-cache-dtype fp8
+      --max-model-len 16384
+      --gpu-memory-utilization 0.88
+      --enable-prefix-caching
+      --guided-decoding-backend xgrammar
+      --served-model-name Qwen/Qwen3-30B-A3B-Instruct-AWQ
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  mssql-data:
+  hf-cache:
+  ollama-models:

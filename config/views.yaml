@@ -1,0 +1,430 @@
+# Манифест витрин корпоративного хранилища.
+#
+# Это семантический слой системы. Здесь закреплено, как считаются бизнес-показатели
+# и как трактуются неоднозначные формулировки вопросов. Файл хранится в системе
+# контроля версий и проходит проверку при внесении изменений, поскольку решение
+# "выручка считается без налога на добавленную стоимость и за вычетом возвратов"
+# является управленческим, а не техническим.
+#
+# Поля витрины:
+#   name          полное имя представления в базе данных
+#   purpose       назначение одной строкой, попадает в компактный указатель
+#   implemented   витрина существует в демонстрационной базе стенда
+#   columns       перечень колонок, попадает в подробное описание
+#   joins         связи с другими витринами
+#   defaults      трактовки по умолчанию для неоднозначных формулировок
+#
+# Витрины без раздела columns описаны только в указателе. Модель видит их
+# существование и назначение, но подробностей по ним в запрос не подаётся.
+# При обращении к такой витрине система выполняет повторный отбор.
+
+views:
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Продажи
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - name: mart.v_sales
+    purpose: Продажи в разрезе дат, регионов, подразделений и групп товаров
+    implemented: true
+    defaults:
+      период: Если период не указан, берётся последний завершённый месяц
+      регион: Регион отгрузки. Регион клиента находится в витрине mart.v_clients
+    joins:
+      - client_id связан с mart.v_clients.client_id
+      - product_group связан с mart.v_products.product_group
+    columns:
+      - name: report_date
+        type: date
+        description: Дата продажи
+      - name: region
+        type: nvarchar(60)
+        description: Регион отгрузки
+        sample_values: ["Москва", "Северо-Запад", "Урал", "Сибирь", "Юг"]
+      - name: division
+        type: nvarchar(60)
+        description: Подразделение, оформившее продажу
+        sample_values: ["Розница", "Корпоративные продажи", "Электронная торговля"]
+      - name: product_group
+        type: nvarchar(60)
+        description: Группа товаров
+        sample_values: ["Ноутбуки", "Серверы", "Сетевое оборудование", "Периферия"]
+      - name: client_id
+        type: int
+        description: Идентификатор клиента
+      - name: revenue_net
+        type: decimal(18,2)
+        description: >-
+          Выручка без налога на добавленную стоимость и за вычетом возвратов.
+          Это единственное определение выручки, принятое в системе
+      - name: qty
+        type: int
+        description: Количество проданных единиц товара
+
+  - name: mart.v_sales_plan_fact
+    purpose: Сопоставление плановой и фактической выручки по подразделениям
+    implemented: true
+    defaults:
+      период: Если период не указан, берётся текущий год
+    joins:
+      - division соответствует mart.v_sales.division
+    columns:
+      - name: report_month
+        type: date
+        description: Первое число отчётного месяца
+      - name: division
+        type: nvarchar(60)
+        description: Подразделение
+        sample_values: ["Розница", "Корпоративные продажи", "Электронная торговля"]
+      - name: revenue_plan
+        type: decimal(18,2)
+        description: Плановая выручка на месяц
+      - name: revenue_fact
+        type: decimal(18,2)
+        description: Фактическая выручка за месяц, рассчитана так же, как revenue_net
+
+  - name: mart.v_clients
+    purpose: Справочник клиентов с сегментом и регионом регистрации
+    implemented: true
+    columns:
+      - name: client_id
+        type: int
+        description: Идентификатор клиента
+      - name: client_name
+        type: nvarchar(200)
+        description: Наименование клиента
+      - name: customer_region
+        type: nvarchar(60)
+        description: Регион регистрации клиента, может отличаться от региона отгрузки
+        sample_values: ["Москва", "Северо-Запад", "Урал", "Сибирь", "Юг"]
+      - name: segment
+        type: nvarchar(40)
+        description: Сегмент клиента
+        sample_values: ["Корпоративный", "Малый бизнес", "Государственный", "Розница"]
+      - name: is_active
+        type: bit
+        description: Признак действующего клиента
+
+  - name: mart.v_margin
+    purpose: Валовая маржа по продажам в разрезе товаров и клиентов
+    implemented: true
+    defaults:
+      маржа: Разница между выручкой без налога и себестоимостью списания
+    joins:
+      - client_id связан с mart.v_clients.client_id
+    columns:
+      - name: report_date
+        type: date
+        description: Дата продажи
+      - name: product_group
+        type: nvarchar(60)
+        description: Группа товаров
+        sample_values: ["Ноутбуки", "Серверы", "Сетевое оборудование", "Периферия"]
+      - name: client_id
+        type: int
+        description: Идентификатор клиента
+      - name: revenue_net
+        type: decimal(18,2)
+        description: Выручка без налога на добавленную стоимость
+      - name: cost_amount
+        type: decimal(18,2)
+        description: Себестоимость списания
+      - name: margin_amount
+        type: decimal(18,2)
+        description: Валовая маржа в денежном выражении
+
+  - name: mart.v_returns
+    purpose: Возвраты товаров от клиентов с указанием причины
+    implemented: true
+    joins:
+      - client_id связан с mart.v_clients.client_id
+    columns:
+      - name: return_date
+        type: date
+        description: Дата оформления возврата
+      - name: client_id
+        type: int
+        description: Идентификатор клиента
+      - name: product_group
+        type: nvarchar(60)
+        description: Группа товаров
+        sample_values: ["Ноутбуки", "Серверы", "Сетевое оборудование", "Периферия"]
+      - name: reason
+        type: nvarchar(80)
+        description: Причина возврата
+        sample_values: ["Брак", "Пересорт", "Отказ клиента", "Нарушение сроков"]
+      - name: return_amount
+        type: decimal(18,2)
+        description: Сумма возврата без налога на добавленную стоимость
+      - name: qty
+        type: int
+        description: Количество возвращённых единиц
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Номенклатура и цены
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - name: mart.v_products
+    purpose: Справочник номенклатуры с группой, брендом и признаком снятия с продаж
+    implemented: true
+    columns:
+      - name: product_id
+        type: int
+        description: Идентификатор номенклатуры
+      - name: product_name
+        type: nvarchar(200)
+        description: Наименование товара
+      - name: product_group
+        type: nvarchar(60)
+        description: Группа товаров
+        sample_values: ["Ноутбуки", "Серверы", "Сетевое оборудование", "Периферия"]
+      - name: brand
+        type: nvarchar(60)
+        description: Бренд
+        sample_values: ["Lenovo", "HP", "Huawei", "Kingston", "Logitech"]
+      - name: is_discontinued
+        type: bit
+        description: Признак снятия товара с продаж
+
+  - name: mart.v_price_list
+    purpose: Действующие отпускные цены по номенклатуре и категориям клиентов
+    implemented: true
+    joins:
+      - product_id связан с mart.v_products.product_id
+    columns:
+      - name: product_id
+        type: int
+        description: Идентификатор номенклатуры
+      - name: price_category
+        type: nvarchar(40)
+        description: Категория цены
+        sample_values: ["Базовая", "Дилерская", "Проектная"]
+      - name: price_net
+        type: decimal(18,2)
+        description: Цена без налога на добавленную стоимость
+      - name: valid_from
+        type: date
+        description: Дата начала действия цены
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Закупки
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - name: mart.v_purchases
+    purpose: Закупки товаров у поставщиков с суммами и сроками поставки
+    implemented: true
+    joins:
+      - supplier_id связан с mart.v_suppliers.supplier_id
+      - product_group связан с mart.v_products.product_group
+    columns:
+      - name: order_date
+        type: date
+        description: Дата размещения заказа поставщику
+      - name: receipt_date
+        type: date
+        description: Дата фактического поступления товара на склад
+      - name: supplier_id
+        type: int
+        description: Идентификатор поставщика
+      - name: product_group
+        type: nvarchar(60)
+        description: Группа товаров
+        sample_values: ["Ноутбуки", "Серверы", "Сетевое оборудование", "Периферия"]
+      - name: purchase_amount
+        type: decimal(18,2)
+        description: Сумма закупки без налога на добавленную стоимость
+      - name: qty
+        type: int
+        description: Количество закупленных единиц
+
+  - name: mart.v_suppliers
+    purpose: Справочник поставщиков со страной и условиями оплаты
+    implemented: true
+    columns:
+      - name: supplier_id
+        type: int
+        description: Идентификатор поставщика
+      - name: supplier_name
+        type: nvarchar(200)
+        description: Наименование поставщика
+      - name: country
+        type: nvarchar(60)
+        description: Страна поставщика
+        sample_values: ["Беларусь", "Россия", "Китай", "Польша"]
+      - name: payment_terms_days
+        type: int
+        description: Отсрочка платежа в днях
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Склад и логистика
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - name: mart.v_stock_balance
+    purpose: Остатки товаров на складах на конец каждого дня
+    implemented: true
+    defaults:
+      дата: Если дата не указана, берётся последняя доступная дата остатков
+    joins:
+      - product_group связан с mart.v_products.product_group
+    columns:
+      - name: balance_date
+        type: date
+        description: Дата, на которую зафиксирован остаток
+      - name: warehouse
+        type: nvarchar(60)
+        description: Склад хранения
+        sample_values: ["Центральный", "Минск-1", "Гомель", "Транзитный"]
+      - name: product_group
+        type: nvarchar(60)
+        description: Группа товаров
+        sample_values: ["Ноутбуки", "Серверы", "Сетевое оборудование", "Периферия"]
+      - name: qty_on_hand
+        type: int
+        description: Количество единиц в наличии
+      - name: stock_value
+        type: decimal(18,2)
+        description: Стоимость остатка по себестоимости
+
+  - name: mart.v_stock_movements
+    purpose: Приход и расход товаров по складам с типом операции
+    implemented: true
+    columns:
+      - name: movement_date
+        type: date
+        description: Дата движения товара
+      - name: warehouse
+        type: nvarchar(60)
+        description: Склад
+        sample_values: ["Центральный", "Минск-1", "Гомель", "Транзитный"]
+      - name: movement_type
+        type: nvarchar(40)
+        description: Тип операции
+        sample_values: ["Приход", "Расход", "Перемещение", "Списание"]
+      - name: product_group
+        type: nvarchar(60)
+        description: Группа товаров
+        sample_values: ["Ноутбуки", "Серверы", "Сетевое оборудование", "Периферия"]
+      - name: qty
+        type: int
+        description: Количество единиц в операции
+
+  - name: mart.v_shipments
+    purpose: Отгрузки клиентам со сроками доставки и признаком опоздания
+    implemented: true
+    joins:
+      - client_id связан с mart.v_clients.client_id
+    columns:
+      - name: shipment_date
+        type: date
+        description: Дата отгрузки со склада
+      - name: delivery_date
+        type: date
+        description: Дата фактической доставки клиенту
+      - name: client_id
+        type: int
+        description: Идентификатор клиента
+      - name: carrier
+        type: nvarchar(60)
+        description: Перевозчик
+        sample_values: ["Собственный транспорт", "СДЭК", "Деловые линии"]
+      - name: is_late
+        type: bit
+        description: Признак нарушения планового срока доставки
+      - name: shipment_cost
+        type: decimal(18,2)
+        description: Затраты на доставку
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Финансы
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - name: mart.v_receivables
+    purpose: Дебиторская задолженность клиентов с разбивкой по срокам просрочки
+    implemented: true
+    defaults:
+      просрочка: Просроченной считается задолженность с days_overdue больше нуля
+    joins:
+      - client_id связан с mart.v_clients.client_id
+    columns:
+      - name: report_date
+        type: date
+        description: Дата, на которую рассчитана задолженность
+      - name: client_id
+        type: int
+        description: Идентификатор клиента
+      - name: debt_amount
+        type: decimal(18,2)
+        description: Сумма задолженности
+      - name: days_overdue
+        type: int
+        description: Количество дней просрочки, ноль означает отсутствие просрочки
+      - name: overdue_bucket
+        type: nvarchar(40)
+        description: Интервал просрочки
+        sample_values: ["Без просрочки", "1-30 дней", "31-90 дней", "Более 90 дней"]
+
+  - name: mart.v_payments
+    purpose: Поступления денежных средств от клиентов по датам и способам оплаты
+    implemented: true
+    joins:
+      - client_id связан с mart.v_clients.client_id
+    columns:
+      - name: payment_date
+        type: date
+        description: Дата поступления платежа
+      - name: client_id
+        type: int
+        description: Идентификатор клиента
+      - name: payment_amount
+        type: decimal(18,2)
+        description: Сумма платежа
+      - name: payment_method
+        type: nvarchar(40)
+        description: Способ оплаты
+        sample_values: ["Банковский перевод", "Карта", "Наличные", "Зачёт"]
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Витрины, описанные только в указателе.
+  #
+  # Модель видит их существование и назначение, но подробностей в запрос
+  # не подаётся. При обращении к такой витрине выполняется повторный отбор.
+  # В промышленной установке подробные описания заполняются по мере включения
+  # витрин в работу.
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - {name: mart.v_sales_by_manager,      purpose: Продажи в разрезе менеджеров и воронки сделок}
+  - {name: mart.v_sales_forecast,        purpose: Ожидаемая выручка по сделкам в работе}
+  - {name: mart.v_orders,                purpose: Заказы клиентов со статусами обработки}
+  - {name: mart.v_order_lines,           purpose: Строки заказов клиентов по номенклатуре}
+  - {name: mart.v_discounts,             purpose: Предоставленные скидки и их основания}
+  - {name: mart.v_contracts,             purpose: Договоры с клиентами, сроки и условия}
+  - {name: mart.v_client_activity,       purpose: Активность клиентов по обращениям и покупкам}
+  - {name: mart.v_client_churn,          purpose: Признаки оттока клиентов по периодам}
+  - {name: mart.v_supplier_performance,  purpose: Дисциплина поставок поставщиков и отклонения сроков}
+  - {name: mart.v_purchase_requests,     purpose: Заявки на закупку и стадии согласования}
+  - {name: mart.v_purchase_prices,       purpose: История закупочных цен по номенклатуре}
+  - {name: mart.v_import_declarations,   purpose: Таможенные декларации и сроки оформления}
+  - {name: mart.v_stock_turnover,        purpose: Оборачиваемость запасов по группам товаров}
+  - {name: mart.v_stock_aging,           purpose: Возраст складских запасов и неликвиды}
+  - {name: mart.v_stock_reservations,    purpose: Резервы товара под заказы клиентов}
+  - {name: mart.v_warehouse_operations,  purpose: Складские операции и трудозатраты персонала}
+  - {name: mart.v_inventory_counts,      purpose: Результаты инвентаризаций и расхождения}
+  - {name: mart.v_delivery_routes,       purpose: Маршруты доставки и загрузка транспорта}
+  - {name: mart.v_transport_costs,       purpose: Затраты на транспорт в разрезе направлений}
+  - {name: mart.v_packaging,             purpose: Расход упаковочных материалов по отгрузкам}
+  - {name: mart.v_cash_flow,             purpose: Движение денежных средств по статьям}
+  - {name: mart.v_payables,              purpose: Кредиторская задолженность перед поставщиками}
+  - {name: mart.v_budget_plan_fact,      purpose: Исполнение бюджета по статьям расходов}
+  - {name: mart.v_cost_centers,          purpose: Затраты в разрезе центров финансовой ответственности}
+  - {name: mart.v_currency_rates,        purpose: Курсы валют на дату для пересчёта показателей}
+  - {name: mart.v_profit_and_loss,       purpose: Отчёт о прибылях и убытках по периодам}
+  - {name: mart.v_tax_summary,           purpose: Сводка по начисленным налогам}
+  - {name: mart.v_fixed_assets,          purpose: Основные средства и начисленная амортизация}
+  - {name: mart.v_employees,             purpose: Штатная структура подразделений без персональных данных}
+  - {name: mart.v_headcount,             purpose: Численность персонала по подразделениям и периодам}
+  - {name: mart.v_service_requests,      purpose: Обращения клиентов в сервисную службу}
+  - {name: mart.v_warranty_cases,        purpose: Гарантийные случаи и сроки их закрытия}
+  - {name: mart.v_marketing_campaigns,   purpose: Маркетинговые кампании и затраты на них}
+  - {name: mart.v_web_traffic,           purpose: Посещаемость интернет-магазина по источникам}
+  - {name: mart.v_production_orders,     purpose: Заказы на сборку и комплектацию оборудования}
+  - {name: mart.v_quality_incidents,     purpose: Зафиксированные несоответствия качества}

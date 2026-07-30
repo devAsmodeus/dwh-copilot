@@ -1,0 +1,352 @@
+# Эталонный набор бизнес-вопросов для оценки Text-to-SQL.
+#
+# Метрика — execution accuracy: эталонный и сгенерированный SQL выполняются
+# на ЗАФИКСИРОВАННОМ снапшоте данных, сравниваются результирующие наборы.
+# Тексты запросов не сравниваются: разный SQL, дающий одинаковые данные,
+# засчитывается как правильный ответ.
+#
+# ordered: true  — в эталоне есть ORDER BY, порядок строк значим (топ-N, ранжирование)
+# ordered: false — порядок не определён, оба набора сортируются перед сравнением
+#
+# answerable: false — правильным ответом является ОТКАЗ. Без таких вопросов
+# нельзя измерить, галлюцинирует система или нет.
+
+meta:
+  snapshot_date: "2026-07-28"     # дата актуальности данных в снапшоте
+  current_date: "2026-07-30"      # «сегодня» для резолвера периодов
+  views:
+    - mart.v_sales            # report_date, region, division, product_group,
+                              # client_id, revenue_net, qty
+    - mart.v_sales_plan_fact  # report_month, division, revenue_plan, revenue_fact
+    - mart.v_clients          # client_id, client_name, customer_region, segment
+
+questions:
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Простая агрегация (5)
+  # ───────────────────────────────────────────────────────────────────────────
+
+  - id: agg_01
+    category: simple_aggregation
+    question: Какая выручка была в июне 2026 года?
+    ordered: false
+    answerable: true
+    golden_sql: |
+      SELECT SUM(revenue_net) AS revenue
+      FROM mart.v_sales
+      WHERE report_date >= '2026-06-01' AND report_date < '2026-07-01'
+
+  - id: agg_02
+    category: simple_aggregation
+    question: Покажи выручку по регионам за июнь 2026.
+    ordered: false
+    answerable: true
+    golden_sql: |
+      SELECT region, SUM(revenue_net) AS revenue
+      FROM mart.v_sales
+      WHERE report_date >= '2026-06-01' AND report_date < '2026-07-01'
+      GROUP BY region
+
+  - id: agg_03
+    category: simple_aggregation
+    question: Сколько всего клиентов в сегменте «Корпоративный»?
+    ordered: false
+    answerable: true
+    golden_sql: |
+      SELECT COUNT(*) AS clients
+      FROM mart.v_clients
+      WHERE segment = 'Корпоративный'
+
+  - id: agg_04
+    category: simple_aggregation
+    question: Какое количество товара продано по группам продукции за июнь 2026?
+    ordered: false
+    answerable: true
+    golden_sql: |
+      SELECT product_group, SUM(qty) AS qty
+      FROM mart.v_sales
+      WHERE report_date >= '2026-06-01' AND report_date < '2026-07-01'
+      GROUP BY product_group
+
+  - id: agg_05
+    category: simple_aggregation
+    question: Средний чек по подразделениям за июнь 2026.
+    ordered: false
+    answerable: true
+    golden_sql: |
+      SELECT division, SUM(revenue_net) / NULLIF(COUNT(*), 0) AS avg_ticket
+      FROM mart.v_sales
+      WHERE report_date >= '2026-06-01' AND report_date < '2026-07-01'
+      GROUP BY division
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Фильтр + период (5). Проверяют резолвер относительных дат.
+  # «Последние N месяцев» отсчитываются от snapshot_date, не от current_date.
+  # ───────────────────────────────────────────────────────────────────────────
+
+  - id: period_01
+    category: filter_period
+    question: Покажи динамику продаж по регионам за последние три месяца.
+    ordered: true
+    answerable: true
+    notes: Пример №1 из ТЗ. Обязателен в наборе.
+    golden_sql: |
+      SELECT region,
+             DATEFROMPARTS(YEAR(report_date), MONTH(report_date), 1) AS month,
+             SUM(revenue_net) AS revenue
+      FROM mart.v_sales
+      WHERE report_date >= '2026-04-28' AND report_date <= '2026-07-28'
+      GROUP BY region, DATEFROMPARTS(YEAR(report_date), MONTH(report_date), 1)
+      ORDER BY region, month
+
+  - id: period_02
+    category: filter_period
+    question: Выручка по Северо-Западу за последние три месяца.
+    ordered: false
+    answerable: true
+    golden_sql: |
+      SELECT SUM(revenue_net) AS revenue
+      FROM mart.v_sales
+      WHERE region = 'Северо-Запад'
+        AND report_date >= '2026-04-28' AND report_date <= '2026-07-28'
+
+  - id: period_03
+    category: filter_period
+    question: Сколько продали в прошлом месяце?
+    ordered: false
+    answerable: true
+    notes: Прошлый месяц относительно snapshot_date (июль 2026) — это июнь.
+    golden_sql: |
+      SELECT SUM(revenue_net) AS revenue
+      FROM mart.v_sales
+      WHERE report_date >= '2026-06-01' AND report_date < '2026-07-01'
+
+  - id: period_04
+    category: filter_period
+    question: Выручка по группам товаров за первое полугодие 2026.
+    ordered: false
+    answerable: true
+    golden_sql: |
+      SELECT product_group, SUM(revenue_net) AS revenue
+      FROM mart.v_sales
+      WHERE report_date >= '2026-01-01' AND report_date < '2026-07-01'
+      GROUP BY product_group
+
+  - id: period_05
+    category: filter_period
+    question: Продажи корпоративным клиентам за последний квартал.
+    ordered: false
+    answerable: true
+    notes: Требует соединения с mart.v_clients.
+    golden_sql: |
+      SELECT SUM(s.revenue_net) AS revenue
+      FROM mart.v_sales s
+      JOIN mart.v_clients c ON c.client_id = s.client_id
+      WHERE c.segment = 'Корпоративный'
+        AND s.report_date >= '2026-04-28' AND s.report_date <= '2026-07-28'
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # План / факт (4). Витрина со сведёнными планом и фактом — ключевое
+  # архитектурное решение: LLM не джойнит план с фактом самостоятельно.
+  # ───────────────────────────────────────────────────────────────────────────
+
+  - id: plan_01
+    category: plan_fact
+    question: В каких подразделениях фактическая выручка ниже плана более чем на 10%?
+    ordered: false
+    answerable: true
+    notes: Пример №2 из ТЗ. Обязателен в наборе.
+    golden_sql: |
+      SELECT division,
+             SUM(revenue_plan) AS plan,
+             SUM(revenue_fact) AS fact
+      FROM mart.v_sales_plan_fact
+      GROUP BY division
+      HAVING SUM(revenue_fact) < SUM(revenue_plan) * 0.9
+
+  - id: plan_02
+    category: plan_fact
+    question: Покажи процент выполнения плана по подразделениям за 2026 год.
+    ordered: false
+    answerable: true
+    golden_sql: |
+      SELECT division,
+             SUM(revenue_fact) * 100.0 / NULLIF(SUM(revenue_plan), 0) AS pct
+      FROM mart.v_sales_plan_fact
+      WHERE report_month >= '2026-01-01'
+      GROUP BY division
+
+  - id: plan_03
+    category: plan_fact
+    question: Какое отклонение факта от плана в рублях по каждому подразделению?
+    ordered: false
+    answerable: true
+    golden_sql: |
+      SELECT division,
+             SUM(revenue_fact) - SUM(revenue_plan) AS deviation
+      FROM mart.v_sales_plan_fact
+      GROUP BY division
+
+  - id: plan_04
+    category: plan_fact
+    question: Кто перевыполнил план в июне 2026?
+    ordered: false
+    answerable: true
+    notes: «Кто» = подразделение. Персональных данных в витринах нет.
+    golden_sql: |
+      SELECT division
+      FROM mart.v_sales_plan_fact
+      WHERE report_month >= '2026-06-01' AND report_month < '2026-07-01'
+      GROUP BY division
+      HAVING SUM(revenue_fact) > SUM(revenue_plan)
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Ранжирование, топ-N (3). ordered: true — порядок строк значим.
+  # ───────────────────────────────────────────────────────────────────────────
+
+  - id: rank_01
+    category: ranking
+    question: Топ-5 подразделений по выручке за последние три месяца.
+    ordered: true
+    answerable: true
+    golden_sql: |
+      SELECT TOP 5 division, SUM(revenue_net) AS revenue
+      FROM mart.v_sales
+      WHERE report_date >= '2026-04-28' AND report_date <= '2026-07-28'
+      GROUP BY division
+      ORDER BY revenue DESC
+
+  - id: rank_02
+    category: ranking
+    question: Какие три региона показали наименьшую выручку в июне 2026?
+    ordered: true
+    answerable: true
+    golden_sql: |
+      SELECT TOP 3 region, SUM(revenue_net) AS revenue
+      FROM mart.v_sales
+      WHERE report_date >= '2026-06-01' AND report_date < '2026-07-01'
+      GROUP BY region
+      ORDER BY revenue ASC
+
+  - id: rank_03
+    category: ranking
+    question: Десять крупнейших клиентов по выручке за 2026 год.
+    ordered: true
+    answerable: true
+    golden_sql: |
+      SELECT TOP 10 c.client_name, SUM(s.revenue_net) AS revenue
+      FROM mart.v_sales s
+      JOIN mart.v_clients c ON c.client_id = s.client_id
+      WHERE s.report_date >= '2026-01-01'
+      GROUP BY c.client_name
+      ORDER BY revenue DESC
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Динамика, период к периоду (3). Самая сложная категория — оконные функции.
+  # ───────────────────────────────────────────────────────────────────────────
+
+  - id: trend_01
+    category: trend
+    question: Покажи динамику продаж по месяцам за последние полгода.
+    ordered: true
+    answerable: true
+    golden_sql: |
+      SELECT DATEFROMPARTS(YEAR(report_date), MONTH(report_date), 1) AS month,
+             SUM(revenue_net) AS revenue
+      FROM mart.v_sales
+      WHERE report_date >= '2026-01-28' AND report_date <= '2026-07-28'
+      GROUP BY DATEFROMPARTS(YEAR(report_date), MONTH(report_date), 1)
+      ORDER BY month
+
+  - id: trend_02
+    category: trend
+    question: Как изменилась выручка в июне 2026 по сравнению с маем?
+    ordered: false
+    answerable: true
+    golden_sql: |
+      SELECT DATEFROMPARTS(YEAR(report_date), MONTH(report_date), 1) AS month,
+             SUM(revenue_net) AS revenue
+      FROM mart.v_sales
+      WHERE report_date >= '2026-05-01' AND report_date < '2026-07-01'
+      GROUP BY DATEFROMPARTS(YEAR(report_date), MONTH(report_date), 1)
+
+  - id: trend_03
+    category: trend
+    question: Покажи выручку по месяцам с накопительным итогом за 2026 год.
+    ordered: true
+    answerable: true
+    notes: Требует оконной функции. Ожидаемо самый сложный вопрос набора.
+    golden_sql: |
+      SELECT month, revenue,
+             SUM(revenue) OVER (ORDER BY month ROWS UNBOUNDED PRECEDING) AS cumulative
+      FROM (
+          SELECT DATEFROMPARTS(YEAR(report_date), MONTH(report_date), 1) AS month,
+                 SUM(revenue_net) AS revenue
+          FROM mart.v_sales
+          WHERE report_date >= '2026-01-01'
+          GROUP BY DATEFROMPARTS(YEAR(report_date), MONTH(report_date), 1)
+      ) t
+      ORDER BY month
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Неоднозначные (2). Правильное поведение — ответить по умолчанию из манифеста
+  # витрины И явно показать принятое допущение. Уточняющий вопрос не требуется.
+  # ───────────────────────────────────────────────────────────────────────────
+
+  - id: ambig_01
+    category: ambiguous
+    question: Покажи продажи по регионам.
+    ordered: false
+    answerable: true
+    expected_assumption: >-
+      Регион определён по клиенту (mart.v_clients.customer_region),
+      период — последние 3 месяца. Оба допущения обязаны быть показаны
+      пользователю в тексте ответа.
+    golden_sql: |
+      SELECT c.customer_region, SUM(s.revenue_net) AS revenue
+      FROM mart.v_sales s
+      JOIN mart.v_clients c ON c.client_id = s.client_id
+      WHERE s.report_date >= '2026-04-28' AND s.report_date <= '2026-07-28'
+      GROUP BY c.customer_region
+
+  - id: ambig_02
+    category: ambiguous
+    question: Как у нас дела с выручкой?
+    ordered: false
+    answerable: true
+    expected_assumption: >-
+      Период не указан — берётся последний завершённый месяц (июнь 2026),
+      допущение показывается пользователю.
+    golden_sql: |
+      SELECT SUM(revenue_net) AS revenue
+      FROM mart.v_sales
+      WHERE report_date >= '2026-06-01' AND report_date < '2026-07-01'
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Неотвечаемые (3). Правильный ответ — ОТКАЗ.
+  # Без этой категории нельзя отличить работающую систему от галлюцинирующей:
+  # система, которой не разрешено отказываться, сгенерирует SQL всегда.
+  # ───────────────────────────────────────────────────────────────────────────
+
+  - id: refuse_01
+    category: unanswerable
+    question: Покажи зарплаты сотрудников по подразделениям.
+    answerable: false
+    expected_refusal: >-
+      Данных по оплате труда нет в разрешённых витринах.
+      Доступны: продажи, план-факт, клиенты.
+
+  - id: refuse_02
+    category: unanswerable
+    question: Какой будет выручка в 2027 году?
+    answerable: false
+    expected_refusal: >-
+      Прогнозирование не поддерживается — система отвечает только
+      на вопросы по историческим данным КХД.
+
+  - id: refuse_03
+    category: unanswerable
+    question: Какая себестоимость по группам товаров?
+    answerable: false
+    expected_refusal: >-
+      Данных по себестоимости нет в разрешённых витринах.

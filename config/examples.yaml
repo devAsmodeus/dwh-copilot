@@ -1,0 +1,118 @@
+# Банк примеров "вопрос и эталонный запрос".
+#
+# Подача трёх-пяти подходящих примеров поднимает долю верных ответов сильнее,
+# чем расширение описания витрин. Примеры передают модели не структуру данных,
+# а принятый в организации способ работы.
+#
+# Пополнение банка выполняется через запрос на слияние. Каждый добавленный
+# пример проходит проверку: эталонный запрос обязан пройти модуль безопасности
+# и выполниться на демонстрационном стенде. Проверка описана в tests/test_examples.py.
+
+examples:
+
+  - question: Покажи выручку по регионам за июнь 2026
+    views: [mart.v_sales]
+    sql: |
+      SELECT region, SUM(revenue_net) AS revenue
+      FROM mart.v_sales
+      WHERE report_date >= '2026-06-01' AND report_date < '2026-07-01'
+      GROUP BY region
+
+  - question: Динамика продаж по месяцам за последние полгода
+    views: [mart.v_sales]
+    sql: |
+      SELECT DATEFROMPARTS(YEAR(report_date), MONTH(report_date), 1) AS month,
+             SUM(revenue_net) AS revenue
+      FROM mart.v_sales
+      WHERE report_date >= '2026-01-28' AND report_date <= '2026-07-28'
+      GROUP BY DATEFROMPARTS(YEAR(report_date), MONTH(report_date), 1)
+      ORDER BY month
+
+  - question: Топ-5 подразделений по выручке
+    views: [mart.v_sales]
+    sql: |
+      SELECT TOP 5 division, SUM(revenue_net) AS revenue
+      FROM mart.v_sales
+      WHERE report_date >= '2026-04-28' AND report_date <= '2026-07-28'
+      GROUP BY division
+      ORDER BY revenue DESC
+
+  - question: Выполнение плана по подразделениям
+    views: [mart.v_sales_plan_fact]
+    sql: |
+      SELECT division,
+             SUM(revenue_fact) * 100.0 / NULLIF(SUM(revenue_plan), 0) AS plan_pct
+      FROM mart.v_sales_plan_fact
+      WHERE report_month >= '2026-01-01'
+      GROUP BY division
+
+  - question: Продажи корпоративным клиентам за квартал
+    views: [mart.v_sales, mart.v_clients]
+    sql: |
+      SELECT SUM(s.revenue_net) AS revenue
+      FROM mart.v_sales s
+      JOIN mart.v_clients c ON c.client_id = s.client_id
+      WHERE c.segment = 'Корпоративный'
+        AND s.report_date >= '2026-04-28' AND s.report_date <= '2026-07-28'
+
+  - question: Просроченная дебиторская задолженность по клиентам
+    views: [mart.v_receivables, mart.v_clients]
+    sql: |
+      SELECT c.client_name, SUM(r.debt_amount) AS debt
+      FROM mart.v_receivables r
+      JOIN mart.v_clients c ON c.client_id = r.client_id
+      WHERE r.days_overdue > 0
+      GROUP BY c.client_name
+
+  - question: Остатки на складах по группам товаров
+    views: [mart.v_stock_balance]
+    sql: |
+      SELECT warehouse, product_group, SUM(qty_on_hand) AS qty
+      FROM mart.v_stock_balance
+      WHERE balance_date = '2026-07-28'
+      GROUP BY warehouse, product_group
+
+  - question: Маржа по группам товаров за полугодие
+    views: [mart.v_margin]
+    sql: |
+      SELECT product_group,
+             SUM(revenue_net) AS revenue,
+             SUM(margin_amount) AS margin
+      FROM mart.v_margin
+      WHERE report_date >= '2026-01-01' AND report_date < '2026-07-01'
+      GROUP BY product_group
+
+  - question: Сколько возвратов по причинам за последний квартал
+    views: [mart.v_returns]
+    sql: |
+      SELECT reason, COUNT(*) AS cases, SUM(return_amount) AS amount
+      FROM mart.v_returns
+      WHERE return_date >= '2026-04-28' AND return_date <= '2026-07-28'
+      GROUP BY reason
+
+  - question: Доля просроченных отгрузок по перевозчикам
+    views: [mart.v_shipments]
+    sql: |
+      SELECT carrier,
+             COUNT(*) AS shipments,
+             SUM(CAST(is_late AS int)) * 100.0 / NULLIF(COUNT(*), 0) AS late_pct
+      FROM mart.v_shipments
+      WHERE shipment_date >= '2026-04-28' AND shipment_date <= '2026-07-28'
+      GROUP BY carrier
+
+  - question: Закупки по поставщикам за квартал
+    views: [mart.v_purchases, mart.v_suppliers]
+    sql: |
+      SELECT s.supplier_name, SUM(p.purchase_amount) AS amount
+      FROM mart.v_purchases p
+      JOIN mart.v_suppliers s ON s.supplier_id = p.supplier_id
+      WHERE p.order_date >= '2026-04-28' AND p.order_date <= '2026-07-28'
+      GROUP BY s.supplier_name
+
+  - question: Поступления денежных средств по способам оплаты
+    views: [mart.v_payments]
+    sql: |
+      SELECT payment_method, SUM(payment_amount) AS amount
+      FROM mart.v_payments
+      WHERE payment_date >= '2026-06-01' AND payment_date < '2026-07-01'
+      GROUP BY payment_method

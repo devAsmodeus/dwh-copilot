@@ -1,0 +1,56 @@
+# Автоматическое отслеживание обновлений зависимостей.
+#
+# Dependabot еженедельно проверяет наличие новых версий и открывает запросы
+# на слияние. Каждый такой запрос проходит полный набор проверок из ci.yml,
+# включая набор бизнес-вопросов, поэтому обновление, ломающее качество
+# ответов системы, не будет принято автоматически.
+#
+# Отдельно отслеживаются уязвимости: оповещения безопасности создаются
+# независимо от расписания и вне зависимости от настроек группировки.
+
+version: 2
+
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Minsk
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
+    commit-message:
+      prefix: "chore"
+      include: scope
+    groups:
+      # Мелкие обновления собираются в один запрос, чтобы не создавать шум.
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      # Крупные версии обновляются вручную: они могут изменить поведение
+      # разбора SQL, а от него зависит вся система проверки безопасности.
+      - dependency-name: sqlglot
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Minsk
+    labels: ["dependencies", "ci"]
+    commit-message:
+      prefix: "chore"
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Minsk
+    labels: ["dependencies", "docker"]
+    commit-message:
+      prefix: "chore"
