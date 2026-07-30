@@ -28,11 +28,20 @@ jobs:
       released: ${{ steps.release.outputs.release_created }}
       tag: ${{ steps.release.outputs.tag_name }}
     steps:
+      # Настройки вынесены в файлы .release-please-config.json
+      # и .release-please-manifest.json. Это нужно потому, что номер версии
+      # в pyproject.toml объявлен вычисляемым и читается из
+      # src/dwh_copilot/__init__.py: без явного указания средство выпуска
+      # не находит, что обновлять.
+      #
+      # Для работы требуется разрешение в настройках репозитория:
+      # Settings, Actions, General, Workflow permissions,
+      # Allow GitHub Actions to create and approve pull requests.
       - uses: googleapis/release-please-action@v4
         id: release
         with:
-          release-type: python
-          package-name: dwh-copilot
+          config-file: .release-please-config.json
+          manifest-file: .release-please-manifest.json
 
   publish:
     name: Публикация пакета
