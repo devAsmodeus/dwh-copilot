@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/devAsmodeus/dwh-copilot/compare/dwh-copilot-v0.3.1...dwh-copilot-v0.3.2) (2026-07-30)
+
+
+### Исправления
+
+* образ контейнера не связывался с репозиторием ([5befd2a](https://github.com/devAsmodeus/dwh-copilot/commit/5befd2a589dd627b6f18d469342afd4bb4944676))
+
 ## [0.3.1](https://github.com/devAsmodeus/dwh-copilot/compare/dwh-copilot-v0.3.0...dwh-copilot-v0.3.1) (2026-07-30)
 
 
