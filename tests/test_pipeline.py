@@ -10,7 +10,7 @@ import pytest
 
 from dwh_copilot.catalog import Catalog
 from dwh_copilot.charts import ChartKind
-from dwh_copilot.db import InMemoryDatabase
+from dwh_copilot.db import InMemoryDatabase, QueryExecutionError
 from dwh_copilot.examples import ExampleBank
 from dwh_copilot.llm import ScriptedClient
 from dwh_copilot.pipeline import Pipeline
@@ -160,6 +160,35 @@ def test_database_error_is_returned_to_model(catalog, examples):
     assert "Invalid column name" in messages[-1][1]
     # Текст ошибки СУБД раскрывает структуру хранилища и наружу не уходит.
     assert "Invalid column name" not in answer.message
+
+
+def test_plan_error_goes_to_model_not_out(catalog, examples):
+    """Ошибка построения плана возвращается модели, а не обрушивает обработку.
+
+    Построение плана выполняется самой СУБД и способно завершиться ошибкой
+    на запросе, прошедшем разбор: например, сортировка внутри подзапроса
+    без TOP разбирается анализатором, но отвергается Microsoft SQL Server.
+    """
+
+    class FailingPlanDatabase(InMemoryDatabase):
+        def check_cost(self, sql):
+            raise QueryExecutionError("The ORDER BY clause is invalid in subqueries")
+
+    client = ScriptedClient([VALID_SQL, VALID_SQL, VALID_SQL])
+    pipeline = Pipeline(
+        catalog=catalog,
+        examples=examples,
+        llm=client,
+        database=FailingPlanDatabase(default=RESULT),
+        data_as_of="2026-07-28",
+    )
+    answer = pipeline.ask("Покажи выручку по регионам")
+
+    assert not answer.ok
+    assert all(attempt.outcome == "plan_error" for attempt in answer.attempts)
+    _, messages, _ = client.calls[1]
+    assert "ORDER BY" in messages[-1][1]
+    assert "ORDER BY" not in answer.message
 
 
 def test_sql_generation_is_deterministic(catalog, examples):

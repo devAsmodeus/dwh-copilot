@@ -274,9 +274,16 @@ def run(pipeline, questions: list[dict], database, verbose: bool = True) -> Repo
             correct = False
             detail = answer.message or "Запрос не выполнен"
         else:
-            expected = database.execute(item["golden_sql"]).frame
-            correct = frames_match(expected, answer.frame, item.get("ordered", False))
-            detail = "" if correct else "Данные не совпали с эталоном"
+            # Отказ на одном эталонном запросе не должен прекращать прогон:
+            # потерять сорок минут счёта из-за одного вопроса недопустимо.
+            try:
+                expected = database.execute(item["golden_sql"]).frame
+            except Exception as error:
+                correct = False
+                detail = f"Эталонный запрос не выполнился: {error}"
+            else:
+                correct = frames_match(expected, answer.frame, item.get("ordered", False))
+                detail = "" if correct else "Данные не совпали с эталоном"
 
         if correct:
             report.correct += 1

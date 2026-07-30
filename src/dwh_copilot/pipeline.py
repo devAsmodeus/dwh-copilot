@@ -212,7 +212,21 @@ class Pipeline:
         assert isinstance(verdict, Accepted)
         checked_sql = verdict.sql
 
-        cost = self._db.check_cost(checked_sql)
+        # Построение плана выполняется самой СУБД и потому способно завершиться
+        # ошибкой на запросе, который прошёл разбор. Пример: сортировка внутри
+        # подзапроса без TOP разбирается синтаксическим анализатором, но
+        # отвергается Microsoft SQL Server ещё до выполнения.
+        #
+        # Без этого перехвата такая ошибка проходит мимо цикла исправления
+        # и обрушивает обработку вместо того, чтобы вернуться модели.
+        try:
+            cost = self._db.check_cost(checked_sql)
+        except QueryExecutionError as error:
+            answer.attempts.append(
+                Attempt(sql=checked_sql, outcome="plan_error", detail=str(error))
+            )
+            return str(error)
+
         if isinstance(cost, TooExpensive):
             answer.attempts.append(
                 Attempt(sql=checked_sql, outcome="too_expensive", detail=cost.message)
