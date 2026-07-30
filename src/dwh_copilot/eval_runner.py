@@ -200,20 +200,31 @@ def check_integrity(questions: list[dict], catalog: Catalog) -> list[str]:
     return problems
 
 
-def run(pipeline, questions: list[dict], database) -> Report:
+def run(pipeline, questions: list[dict], database, verbose: bool = True) -> Report:
     """Выполняет полный прогон набора.
 
     Аргументы:
         pipeline: настроенный конвейер обработки вопросов.
         questions: набор вопросов.
         database: подключение к базе для выполнения эталонных запросов.
+        verbose: выводить ход выполнения по каждому вопросу.
 
     Возвращает:
         Отчёт с показателями качества.
+
+    Замечание об удобстве. Ход выполнения выводится по каждому вопросу, поскольку
+    на процессоре без ускорителя один вопрос занимает до полутора минут, а весь
+    набор до сорока. Молчание на такой срок не позволяет отличить работу
+    от зависания.
     """
     report = Report(total=len(questions))
 
-    for item in questions:
+    for position, item in enumerate(questions, start=1):
+        if verbose:
+            print(
+                f"[{position:>2}/{len(questions)}] {item['id']:<12} {item['question'][:56]}",
+                flush=True,
+            )
         answerable = item.get("answerable", True)
         if not answerable:
             report.abstention_expected += 1
@@ -243,6 +254,15 @@ def run(pipeline, questions: list[dict], database) -> Report:
 
         if correct:
             report.correct += 1
+
+        if verbose:
+            mark = "верно " if correct else "ошибка"
+            note = f"  {detail}" if detail else ""
+            print(
+                f"     {mark}  {answer.elapsed_seconds:5.1f} с  "
+                f"повторов: {answer.retry_count}{note}",
+                flush=True,
+            )
 
         report.cases.append(
             CaseResult(
