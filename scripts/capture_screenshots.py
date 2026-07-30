@@ -15,7 +15,6 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
@@ -82,9 +81,7 @@ def ask(page: Page, question: str) -> None:
 
     # Признаком завершения служит исчезновение указателя занятости.
     page.wait_for_selector('[data-testid="stSpinner"]', timeout=30_000)
-    page.wait_for_selector(
-        '[data-testid="stSpinner"]', state="detached", timeout=ANSWER_TIMEOUT_MS
-    )
+    page.wait_for_selector('[data-testid="stSpinner"]', state="detached", timeout=ANSWER_TIMEOUT_MS)
     page.wait_for_timeout(2_500)
 
 
@@ -110,9 +107,7 @@ def main() -> int:
             if name == "01-dynamics":
                 page.evaluate(EXPAND_TRACE)
                 page.wait_for_timeout(1_200)
-                page.screenshot(
-                    path=str(OUTPUT_DIR / "04-trace.png"), full_page=True
-                )
+                page.screenshot(path=str(OUTPUT_DIR / "04-trace.png"), full_page=True)
                 print("  сохранено: 04-trace.png  (ход обработки запроса)")
 
         browser.close()

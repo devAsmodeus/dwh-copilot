@@ -36,7 +36,7 @@ import pandas as pd
 
 from dwh_copilot.catalog import Catalog
 from dwh_copilot.charts import ChartSpec, choose_chart
-from dwh_copilot.db import Database, QueryFailed, TooExpensive
+from dwh_copilot.db import Database, QueryExecutionError, TooExpensive
 from dwh_copilot.examples import ExampleBank
 from dwh_copilot.llm import LlmClient
 from dwh_copilot.prompts import (
@@ -221,10 +221,8 @@ class Pipeline:
 
         try:
             result = self._db.execute(checked_sql)
-        except QueryFailed as error:
-            answer.attempts.append(
-                Attempt(sql=checked_sql, outcome="db_error", detail=str(error))
-            )
+        except QueryExecutionError as error:
+            answer.attempts.append(Attempt(sql=checked_sql, outcome="db_error", detail=str(error)))
             return str(error)
 
         answer.attempts.append(Attempt(sql=checked_sql, outcome="ok"))

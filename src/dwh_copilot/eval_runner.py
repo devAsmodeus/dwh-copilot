@@ -162,9 +162,7 @@ def frames_match(expected: pd.DataFrame, actual: pd.DataFrame, ordered: bool) ->
     return normalize(expected, ordered).equals(normalize(actual, ordered))
 
 
-def check_integrity(
-    questions: list[dict], catalog: Catalog
-) -> list[str]:
+def check_integrity(questions: list[dict], catalog: Catalog) -> list[str]:
     """Проверяет целостность набора без обращения к модели и СУБД.
 
     Проверяется четыре условия: уникальность кодов вопросов, наличие эталонного
@@ -293,7 +291,7 @@ def _percentile(values: list[float], percent: int) -> float:
     if not values:
         return 0.0
     ordered = sorted(values)
-    index = min(len(ordered) - 1, int(round(percent / 100 * len(ordered) + 0.5)) - 1)
+    index = min(len(ordered) - 1, round(percent / 100 * len(ordered) + 0.5) - 1)
     return ordered[index]
 
 

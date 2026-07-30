@@ -21,7 +21,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 import sqlglot
 from sqlglot import exp
@@ -59,7 +59,7 @@ FORBIDDEN_FUNCTIONS: frozenset[str] = frozenset(
 )
 
 
-class Reason(str, Enum):
+class Reason(StrEnum):
     """Причина отказа.
 
     Значение передаётся обратно языковой модели, чтобы она исправила запрос.
@@ -193,16 +193,10 @@ def _cte_names(root: exp.Expression) -> set[str]:
     к таблице, но реальным объектом базы данных оно не является и проверке
     по белому списку не подлежит.
     """
-    return {
-        cte.alias_or_name.lower()
-        for cte in root.find_all(exp.CTE)
-        if cte.alias_or_name
-    }
+    return {cte.alias_or_name.lower() for cte in root.find_all(exp.CTE) if cte.alias_or_name}
 
 
-def _check_tables(
-    root: exp.Expression, allowed_views: frozenset[str]
-) -> frozenset[str] | Rejected:
+def _check_tables(root: exp.Expression, allowed_views: frozenset[str]) -> frozenset[str] | Rejected:
     """Проверяет все обращения к таблицам по белому списку.
 
     Обход выполняется по всему дереву, включая вложенные подзапросы и выражения
@@ -278,11 +272,13 @@ def _enforce_row_limit(root: exp.Expression) -> exp.Expression:
     Собственное ограничение пользователя, если оно меньше предельного,
     сохраняется без изменений.
     """
-    target = root.this if isinstance(root, exp.With) else root
-    if not isinstance(target, exp.Select):
+    # Запрос с конструкцией WITH разбирается в узел Select, у которого выражение
+    # WITH хранится отдельным аргументом. Отдельного корневого узла With при этом
+    # не возникает, поэтому достаточно проверить два вида корня.
+    if not isinstance(root, (exp.Select, exp.Union)):
         return root
 
-    existing = target.args.get("limit")
+    existing = root.args.get("limit")
     if existing is not None:
         current = existing.expression
         if isinstance(current, exp.Literal) and int(current.this) <= MAX_ROWS:

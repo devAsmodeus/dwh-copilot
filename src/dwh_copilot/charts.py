@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 import pandas as pd
 
@@ -25,7 +25,7 @@ import pandas as pd
 MAX_CATEGORIES = 30
 
 
-class ChartKind(str, Enum):
+class ChartKind(StrEnum):
     """Вид представления результата."""
 
     LINE = "line"
@@ -61,17 +61,13 @@ def choose_chart(frame: pd.DataFrame) -> ChartSpec:
 
     numeric = [name for name in frame.columns if pd.api.types.is_numeric_dtype(frame[name])]
     temporal = [name for name in frame.columns if _is_temporal(frame[name])]
-    categorical = [
-        name for name in frame.columns if name not in numeric and name not in temporal
-    ]
+    categorical = [name for name in frame.columns if name not in numeric and name not in temporal]
 
     if not numeric:
         return ChartSpec(ChartKind.NONE, reason="В результате нет числовых колонок")
 
     if len(frame) == 1 and len(frame.columns) == 1:
-        return ChartSpec(
-            ChartKind.VALUE, y=numeric[0], reason="Результат содержит одно значение"
-        )
+        return ChartSpec(ChartKind.VALUE, y=numeric[0], reason="Результат содержит одно значение")
 
     if temporal and len(numeric) >= 1:
         series = categorical[0] if categorical else None
@@ -80,9 +76,7 @@ def choose_chart(frame: pd.DataFrame) -> ChartSpec:
             if series is None
             else "Есть дата и разрез по категории, показана динамика по рядам"
         )
-        return ChartSpec(
-            ChartKind.LINE, x=temporal[0], y=numeric[0], series=series, reason=reason
-        )
+        return ChartSpec(ChartKind.LINE, x=temporal[0], y=numeric[0], series=series, reason=reason)
 
     if categorical and len(frame) <= MAX_CATEGORIES:
         return ChartSpec(
@@ -96,8 +90,7 @@ def choose_chart(frame: pd.DataFrame) -> ChartSpec:
         return ChartSpec(
             ChartKind.NONE,
             reason=(
-                f"Категорий больше {MAX_CATEGORIES}, диаграмма нечитаема. "
-                "Показана только таблица"
+                f"Категорий больше {MAX_CATEGORIES}, диаграмма нечитаема. Показана только таблица"
             ),
         )
 

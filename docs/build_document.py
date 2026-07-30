@@ -25,12 +25,9 @@ from reportlab.platypus import (
     BaseDocTemplate,
     Frame,
     KeepTogether,
-    NextPageTemplate,
-    PageBreak,
     PageTemplate,
     Paragraph,
     Preformatted,
-    Spacer,
     Table,
     TableStyle,
 )
@@ -50,11 +47,18 @@ SHADE = colors.Color(0.93, 0.93, 0.93)
 def register_fonts() -> tuple[str, str, str]:
     """Подключает гарнитуру с поддержкой кириллицы."""
     candidates = [
-        ("Times", "C:/Windows/Fonts/times.ttf", "C:/Windows/Fonts/timesbd.ttf",
-         "C:/Windows/Fonts/timesi.ttf"),
-        ("DejaVu", "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
-         "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf",
-         "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Italic.ttf"),
+        (
+            "Times",
+            "C:/Windows/Fonts/times.ttf",
+            "C:/Windows/Fonts/timesbd.ttf",
+            "C:/Windows/Fonts/timesi.ttf",
+        ),
+        (
+            "DejaVu",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Italic.ttf",
+        ),
     ]
     for name, regular, bold, italic in candidates:
         if Path(regular).exists():
@@ -69,8 +73,11 @@ def register_fonts() -> tuple[str, str, str]:
         raise SystemExit("Не найдена гарнитура с поддержкой кириллицы")
 
     mono = "Mono"
-    for path in ("C:/Windows/Fonts/consola.ttf", "C:/Windows/Fonts/cour.ttf",
-                 "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"):
+    for path in (
+        "C:/Windows/Fonts/consola.ttf",
+        "C:/Windows/Fonts/cour.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+    ):
         if Path(path).exists():
             pdfmetrics.registerFont(TTFont(mono, path))
             break
@@ -87,42 +94,107 @@ def build_styles() -> dict[str, ParagraphStyle]:
     base = getSampleStyleSheet()
     return {
         "title": ParagraphStyle(
-            "title", parent=base["Title"], fontName=FONT_BOLD, fontSize=22,
-            leading=27, alignment=TA_CENTER, textColor=BLACK, spaceAfter=6),
+            "title",
+            parent=base["Title"],
+            fontName=FONT_BOLD,
+            fontSize=22,
+            leading=27,
+            alignment=TA_CENTER,
+            textColor=BLACK,
+            spaceAfter=6,
+        ),
         "subtitle": ParagraphStyle(
-            "subtitle", fontName=FONT, fontSize=13, leading=17,
-            alignment=TA_CENTER, textColor=GREY, spaceAfter=4),
+            "subtitle",
+            fontName=FONT,
+            fontSize=13,
+            leading=17,
+            alignment=TA_CENTER,
+            textColor=GREY,
+            spaceAfter=4,
+        ),
         "cover_meta": ParagraphStyle(
-            "cover_meta", fontName=FONT, fontSize=11, leading=16,
-            alignment=TA_CENTER, textColor=BLACK),
+            "cover_meta",
+            fontName=FONT,
+            fontSize=11,
+            leading=16,
+            alignment=TA_CENTER,
+            textColor=BLACK,
+        ),
         "h1": ParagraphStyle(
-            "h1", fontName=FONT_BOLD, fontSize=16, leading=20, textColor=BLACK,
-            spaceBefore=2, spaceAfter=10),
+            "h1",
+            fontName=FONT_BOLD,
+            fontSize=16,
+            leading=20,
+            textColor=BLACK,
+            spaceBefore=2,
+            spaceAfter=10,
+        ),
         "h2": ParagraphStyle(
-            "h2", fontName=FONT_BOLD, fontSize=12.5, leading=16, textColor=BLACK,
-            spaceBefore=14, spaceAfter=6),
+            "h2",
+            fontName=FONT_BOLD,
+            fontSize=12.5,
+            leading=16,
+            textColor=BLACK,
+            spaceBefore=14,
+            spaceAfter=6,
+        ),
         "h3": ParagraphStyle(
-            "h3", fontName=FONT_BOLD, fontSize=11, leading=14, textColor=BLACK,
-            spaceBefore=10, spaceAfter=4),
+            "h3",
+            fontName=FONT_BOLD,
+            fontSize=11,
+            leading=14,
+            textColor=BLACK,
+            spaceBefore=10,
+            spaceAfter=4,
+        ),
         "body": ParagraphStyle(
-            "body", fontName=FONT, fontSize=10.5, leading=14.5,
-            alignment=TA_JUSTIFY, textColor=BLACK, spaceAfter=6),
+            "body",
+            fontName=FONT,
+            fontSize=10.5,
+            leading=14.5,
+            alignment=TA_JUSTIFY,
+            textColor=BLACK,
+            spaceAfter=6,
+        ),
         "bullet": ParagraphStyle(
-            "bullet", fontName=FONT, fontSize=10.5, leading=14.5,
-            alignment=TA_JUSTIFY, textColor=BLACK, leftIndent=14,
-            bulletIndent=4, spaceAfter=3),
+            "bullet",
+            fontName=FONT,
+            fontSize=10.5,
+            leading=14.5,
+            alignment=TA_JUSTIFY,
+            textColor=BLACK,
+            leftIndent=14,
+            bulletIndent=4,
+            spaceAfter=3,
+        ),
         "note": ParagraphStyle(
-            "note", fontName=FONT, fontSize=9.5, leading=13, alignment=TA_JUSTIFY,
-            textColor=GREY, leftIndent=10, spaceBefore=4, spaceAfter=8),
-        "cell": ParagraphStyle(
-            "cell", fontName=FONT, fontSize=9, leading=12, textColor=BLACK),
+            "note",
+            fontName=FONT,
+            fontSize=9.5,
+            leading=13,
+            alignment=TA_JUSTIFY,
+            textColor=GREY,
+            leftIndent=10,
+            spaceBefore=4,
+            spaceAfter=8,
+        ),
+        "cell": ParagraphStyle("cell", fontName=FONT, fontSize=9, leading=12, textColor=BLACK),
         "cell_head": ParagraphStyle(
-            "cell_head", fontName=FONT_BOLD, fontSize=9, leading=12, textColor=BLACK),
+            "cell_head", fontName=FONT_BOLD, fontSize=9, leading=12, textColor=BLACK
+        ),
         "caption": ParagraphStyle(
-            "caption", fontName=FONT, fontSize=9, leading=12, textColor=GREY,
-            alignment=TA_CENTER, spaceBefore=4, spaceAfter=10),
+            "caption",
+            fontName=FONT,
+            fontSize=9,
+            leading=12,
+            textColor=GREY,
+            alignment=TA_CENTER,
+            spaceBefore=4,
+            spaceAfter=10,
+        ),
         "mono": ParagraphStyle(
-            "mono", fontName=FONT_MONO, fontSize=7.4, leading=9.6, textColor=BLACK),
+            "mono", fontName=FONT_MONO, fontSize=7.4, leading=9.6, textColor=BLACK
+        ),
     }
 
 
@@ -132,6 +204,7 @@ S = build_styles()
 # ─────────────────────────────────────────────────────────────────────────────
 # Помощники построения
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def p(text: str, style: str = "body"):
     return Paragraph(text, S[style])
@@ -189,13 +262,15 @@ def figure(text: str, caption: str = ""):
     framed = Table(
         [[block]],
         colWidths=[168 * mm],
-        style=TableStyle([
-            ("BOX", (0, 0), (-1, -1), 0.5, HAIRLINE),
-            ("TOPPADDING", (0, 0), (-1, -1), 7),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-            ("LEFTPADDING", (0, 0), (-1, -1), 7),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 7),
-        ]),
+        style=TableStyle(
+            [
+                ("BOX", (0, 0), (-1, -1), 0.5, HAIRLINE),
+                ("TOPPADDING", (0, 0), (-1, -1), 7),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+                ("LEFTPADDING", (0, 0), (-1, -1), 7),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+            ]
+        ),
     )
     parts = [framed]
     if caption:
@@ -213,6 +288,7 @@ def keep(*flowables):
 # ─────────────────────────────────────────────────────────────────────────────
 # Шаблон страницы
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def draw_cover(canvas, doc):
     canvas.saveState()
@@ -240,23 +316,30 @@ def draw_page(canvas, doc):
 
 def make_document() -> BaseDocTemplate:
     doc = BaseDocTemplate(
-        str(OUTPUT), pagesize=A4,
-        leftMargin=25 * mm, rightMargin=25 * mm,
-        topMargin=25 * mm, bottomMargin=22 * mm,
-        title=TITLE, author=AUTHOR, subject=SUBTITLE,
+        str(OUTPUT),
+        pagesize=A4,
+        leftMargin=25 * mm,
+        rightMargin=25 * mm,
+        topMargin=25 * mm,
+        bottomMargin=22 * mm,
+        title=TITLE,
+        author=AUTHOR,
+        subject=SUBTITLE,
     )
     frame_cover = Frame(25 * mm, 22 * mm, 160 * mm, 250 * mm, id="cover")
     frame_body = Frame(25 * mm, 22 * mm, 160 * mm, 253 * mm, id="body")
-    doc.addPageTemplates([
-        PageTemplate(id="cover", frames=[frame_cover], onPage=draw_cover),
-        PageTemplate(id="body", frames=[frame_body], onPage=draw_page),
-    ])
+    doc.addPageTemplates(
+        [
+            PageTemplate(id="cover", frames=[frame_cover], onPage=draw_cover),
+            PageTemplate(id="body", frames=[frame_body], onPage=draw_page),
+        ]
+    )
     return doc
 
 
 if __name__ == "__main__":
     sys.path.insert(0, str(Path(__file__).parent))
-    from document_content import build_story  # noqa: E402
+    from document_content import build_story
 
     document = make_document()
     document.build(build_story())

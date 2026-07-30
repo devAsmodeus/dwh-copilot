@@ -22,9 +22,7 @@ WHERE report_date >= '2026-06-01'
 GROUP BY region
 """
 
-RESULT = pd.DataFrame(
-    {"region": ["Москва", "Урал", "Сибирь"], "revenue": [120.0, 80.0, 45.0]}
-)
+RESULT = pd.DataFrame({"region": ["Москва", "Урал", "Сибирь"], "revenue": [120.0, 80.0, 45.0]})
 
 
 @pytest.fixture(scope="module")
@@ -145,9 +143,7 @@ def test_refusal_is_a_valid_outcome(catalog, examples):
 
 def test_database_error_is_returned_to_model(catalog, examples):
     """Ошибка СУБД передаётся модели для исправления, а не пользователю."""
-    database = InMemoryDatabase(
-        default=RESULT, error="Invalid column name 'revenue_total'"
-    )
+    database = InMemoryDatabase(default=RESULT, error="Invalid column name 'revenue_total'")
     client = ScriptedClient([VALID_SQL, VALID_SQL, VALID_SQL])
     pipeline = Pipeline(
         catalog=catalog,

@@ -61,7 +61,7 @@ class QueryResult:
         return len(self.frame)
 
 
-class QueryFailed(Exception):
+class QueryExecutionError(Exception):
     """Ошибка выполнения запроса на стороне СУБД.
 
     Текст ошибки передаётся языковой модели для исправления запроса.
@@ -77,6 +77,13 @@ class Database(Protocol):
 
     def estimate(self, sql: str) -> PlanEstimate:
         """Возвращает оценку стоимости без выполнения запроса."""
+        ...
+
+    def check_cost(self, sql: str) -> TooExpensive | PlanEstimate:
+        """Проверяет запрос по порогам стоимости, рубеж 5.
+
+        Возвращает оценку, если запрос допустим, либо описание отказа.
+        """
         ...
 
     def execute(self, sql: str) -> QueryResult:
@@ -121,7 +128,7 @@ class MsSqlDatabase:
                 cursor.execute(sql)
                 rows = cursor.fetchall()
             except Exception as error:
-                raise QueryFailed(str(error)) from error
+                raise QueryExecutionError(str(error)) from error
             finally:
                 cursor.execute("SET SHOWPLAN_XML OFF")
 
@@ -168,7 +175,7 @@ class MsSqlDatabase:
             with self._connect() as connection:
                 frame = pd.read_sql(sql, connection)
         except Exception as error:
-            raise QueryFailed(str(error)) from error
+            raise QueryExecutionError(str(error)) from error
 
         return QueryResult(frame=frame, elapsed_seconds=time.perf_counter() - started)
 
@@ -219,6 +226,6 @@ class InMemoryDatabase:
     def execute(self, sql: str) -> QueryResult:
         self.executed.append(sql)
         if self._error:
-            raise QueryFailed(self._error)
+            raise QueryExecutionError(self._error)
         frame = self._results.get(sql.strip(), self._default)
         return QueryResult(frame=frame, elapsed_seconds=0.0, estimate=self._estimate)

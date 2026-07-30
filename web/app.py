@@ -21,9 +21,9 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from dwh_copilot.charts import ChartKind  # noqa: E402
-from dwh_copilot.config import settings  # noqa: E402
-from dwh_copilot.factory import build_catalog, build_pipeline  # noqa: E402
+from dwh_copilot.charts import ChartKind
+from dwh_copilot.config import settings
+from dwh_copilot.factory import build_catalog, build_pipeline
 
 SAMPLE_QUESTIONS = [
     "Покажи динамику продаж по регионам за последние три месяца",
@@ -66,9 +66,7 @@ def render_chart(frame: pd.DataFrame, chart) -> None:
         return
 
     if chart.kind is ChartKind.LINE:
-        figure = px.line(
-            frame, x=chart.x, y=chart.y, color=chart.series, markers=True
-        )
+        figure = px.line(frame, x=chart.x, y=chart.y, color=chart.series, markers=True)
     else:
         figure = px.bar(frame, x=chart.x, y=chart.y)
 

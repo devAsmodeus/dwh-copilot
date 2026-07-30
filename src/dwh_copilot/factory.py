@@ -8,7 +8,8 @@
 from __future__ import annotations
 
 from dwh_copilot.catalog import Catalog
-from dwh_copilot.config import Settings, settings as default_settings
+from dwh_copilot.config import Settings
+from dwh_copilot.config import settings as default_settings
 from dwh_copilot.db import MsSqlDatabase
 from dwh_copilot.examples import ExampleBank
 from dwh_copilot.llm import OpenAiCompatibleClient

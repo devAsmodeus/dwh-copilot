@@ -170,9 +170,7 @@ class Catalog:
             lines.extend(f"  {item}" for item in view.joins)
         if view.defaults:
             lines.append("Трактовки по умолчанию:")
-            lines.extend(
-                f"  {key}: {value}" for key, value in sorted(view.defaults.items())
-            )
+            lines.extend(f"  {key}: {value}" for key, value in sorted(view.defaults.items()))
         return "\n".join(lines)
 
     def select(self, question: str, top_k: int = TOP_K_VIEWS) -> list[str]:
@@ -209,9 +207,9 @@ class Catalog:
         # в алфавитном порядке. Отсутствие подходящей витрины должно приводить
         # к обоснованному отказу модели, а не к пустому запросу.
         if not selected:
-            selected = sorted(
-                view.name for view in self._views if view.has_full_description
-            )[:top_k]
+            selected = sorted(view.name for view in self._views if view.has_full_description)[
+                :top_k
+            ]
         return selected
 
 
@@ -228,11 +226,49 @@ _STEM_LENGTH = 4
 # Слова, не несущие смысловой нагрузки при отборе витрин.
 _STOP_WORDS = frozenset(
     {
-        "и", "в", "на", "по", "за", "с", "у", "к", "от", "до", "для", "из",
-        "покажи", "какая", "какой", "какие", "сколько", "как", "что", "кто",
-        "мне", "нам", "наш", "нас", "был", "было", "были", "есть", "это",
-        "последние", "последний", "последнее", "всего", "всех", "более", "менее",
-        "год", "года", "месяц", "месяца", "неделя", "день", "дня",
+        "и",
+        "в",
+        "на",
+        "по",
+        "за",
+        "с",
+        "у",
+        "к",
+        "от",
+        "до",
+        "для",
+        "из",
+        "покажи",
+        "какая",
+        "какой",
+        "какие",
+        "сколько",
+        "как",
+        "что",
+        "кто",
+        "мне",
+        "нам",
+        "наш",
+        "нас",
+        "был",
+        "было",
+        "были",
+        "есть",
+        "это",
+        "последние",
+        "последний",
+        "последнее",
+        "всего",
+        "всех",
+        "более",
+        "менее",
+        "год",
+        "года",
+        "месяц",
+        "месяца",
+        "неделя",
+        "день",
+        "дня",
     }
 )
 
