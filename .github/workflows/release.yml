@@ -82,11 +82,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Имя образа приводится к нижнему регистру. Полное имя репозитория
+      # содержит заглавные буквы, а Docker их в имени образа не допускает:
+      # публикация завершается ошибкой "repository name must be lowercase".
+      - name: Приведение имени образа к нижнему регистру
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
       - name: Сборка и публикация
         uses: docker/build-push-action@v7
         with:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ needs.release-please.outputs.tag }}
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ needs.release-please.outputs.tag }}
