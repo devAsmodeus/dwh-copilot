@@ -37,7 +37,7 @@ jobs:
       # Для работы требуется разрешение в настройках репозитория:
       # Settings, Actions, General, Workflow permissions,
       # Allow GitHub Actions to create and approve pull requests.
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@v5
         id: release
         with:
           config-file: .release-please-config.json
