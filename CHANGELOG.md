@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/devAsmodeus/dwh-copilot/compare/dwh-copilot-v0.2.1...dwh-copilot-v0.2.2) (2026-07-30)
+
+
+### Исправления
+
+* эталонный запрос использовал зарезервированное слово как псевдоним ([e96bad7](https://github.com/devAsmodeus/dwh-copilot/commit/e96bad7ef6f5e09fa993c6ed9abac7bc783cc252))
+
 ## [0.2.1](https://github.com/devAsmodeus/dwh-copilot/compare/dwh-copilot-v0.2.0...dwh-copilot-v0.2.1) (2026-07-30)
 
 
