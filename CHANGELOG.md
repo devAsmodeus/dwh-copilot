@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/devAsmodeus/dwh-copilot/compare/dwh-copilot-v0.3.0...dwh-copilot-v0.3.1) (2026-07-30)
+
+
+### Исправления
+
+* ошибка построения плана обрушивала обработку вместо возврата модели ([f1f0634](https://github.com/devAsmodeus/dwh-copilot/commit/f1f0634bf91ce924bf166c3bbcc3e699e32dd188))
+* публикация образа контейнера и форматирование ([83263e2](https://github.com/devAsmodeus/dwh-copilot/commit/83263e2573136b91b048f576febb8267fc036f82))
+
 ## [0.3.0](https://github.com/devAsmodeus/dwh-copilot/compare/dwh-copilot-v0.2.2...dwh-copilot-v0.3.0) (2026-07-30)
 
 
