@@ -88,6 +88,46 @@ jobs:
         # либо правила проверки стали строже, чем требуется.
         run: python -m dwh_copilot.eval_runner --check-only
 
+  docker:
+    name: Сборка образа и проверка драйвера СУБД
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Сборка образа
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          load: true
+          tags: dwh-copilot:ci
+
+      # Смена базового образа способна незаметно сломать драйвер ODBC.
+      # Проверка сборки этого не показывает: образ собирается, а драйвер
+      # не загружается из-за отсутствующей библиотеки. Поэтому проверяется
+      # именно загрузка драйвера, а не факт наличия файла.
+      - name: Проверка загрузки драйвера ODBC
+        run: |
+          docker run --rm dwh-copilot:ci python -c "
+          import pyodbc, sys
+          drivers = pyodbc.drivers()
+          print('Драйверы ODBC:', drivers)
+          if not any('SQL Server' in d for d in drivers):
+              sys.exit('Драйвер Microsoft SQL Server не зарегистрирован')
+          try:
+              pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER=127.0.0.1,1;'
+                             'DATABASE=x;UID=x;PWD=x;Connection Timeout=1', timeout=1)
+          except pyodbc.InterfaceError as error:
+              # Подключаться некуда, но текст ошибки показывает, загрузилась ли
+              # библиотека драйвера. Ошибка вида 'file not found' означает,
+              # что драйвер зарегистрирован, а его зависимости отсутствуют.
+              if 'not found' in str(error) or 'lib' in str(error):
+                  sys.exit(f'Драйвер не загружается: {error}')
+          except pyodbc.OperationalError:
+              pass
+          print('Драйвер загружается корректно')
+          "
+
   build:
     name: Сборка пакета
     runs-on: ubuntu-latest
