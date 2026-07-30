@@ -40,6 +40,14 @@ RUN apt-get update \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
+# Стандартные метки образа. Метка source обязательна: по ней GitHub связывает
+# опубликованный образ с репозиторием. Без неё образ лежит в реестре, но
+# в разделе Packages репозитория не появляется.
+LABEL org.opencontainers.image.source="https://github.com/devAsmodeus/dwh-copilot"
+LABEL org.opencontainers.image.description="Аналитика корпоративного хранилища по вопросам на русском языке"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.title="dwh-copilot"
+
 WORKDIR /app
 
 COPY --from=builder /dist/*.whl /tmp/
